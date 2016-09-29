@@ -13,6 +13,7 @@ function next(configs) {
         }
         configs.states.c2 = 0
     }
+    return data
 }
 
 function script(code) {
