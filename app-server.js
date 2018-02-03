@@ -23,7 +23,7 @@ async function runModules (modules) {
   }
 }
 
-runModules(['server-web', 'websocket']).catch(err => {
+runModules(['server-web', 'websocket', 'task-manager']).catch(err => {
   console.error('[run-error]', err)
   process.exit(1)
 })

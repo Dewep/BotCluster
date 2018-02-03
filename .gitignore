@@ -36,6 +36,8 @@ jspm_packages
 # Optional REPL history
 .node_repl_history
 
+/package-lock.json
+
 # Local files
 *.local.js
 
