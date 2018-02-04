@@ -49,5 +49,23 @@ export default store => {
     if (mutation.type === 'LOGOUT') {
       removeInstance()
     }
+
+    if (instance) {
+      if (mutation.type === 'ADD_TASK') {
+        instance.send({ type: 'addTask', data: mutation.payload })
+      }
+
+      if (mutation.type === 'RESUME_TASK') {
+        instance.send({ type: 'resumeTask', data: mutation.payload })
+      }
+
+      if (mutation.type === 'PAUSE_TASK') {
+        instance.send({ type: 'pauseTask', data: mutation.payload })
+      }
+
+      if (mutation.type === 'DELETE_TASK') {
+        instance.send({ type: 'deleteTask', data: mutation.payload })
+      }
+    }
   })
 }
