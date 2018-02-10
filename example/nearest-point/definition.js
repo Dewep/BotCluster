@@ -1,12 +1,18 @@
 const points = []
 
 function getRandomPosition () {
-  return Math.round(Math.random() * 10000) - 5000
+  return Math.round(Math.random() * 1000) - 500
 }
 
-for (let i = 0; i < 10000000; i++) {
-  points.push([getRandomPosition(), getRandomPosition()])
+function completePoints () {
+  for (let x = -500; x < 500; x++) {
+    for (let y = -500; y < 500; y++) {
+      points.push([x, y])
+    }
+  }
 }
+
+completePoints()
 
 const targetPoint = [getRandomPosition(), getRandomPosition()]
 
