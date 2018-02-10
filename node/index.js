@@ -74,7 +74,7 @@ class AppNode {
 
   async saveFile (slug, fileModule) {
     const filePath = this.app.config.modulesDirectory + '\\' + slug + '-' + fileModule
-    if (!fs.exists(filePath)) {
+    if (!fs.existsSync(filePath)) {
       let options = {
         uri: `http://127.0.0.1:4242/task/42/${slug}/${fileModule}` // C CRADE
       }
