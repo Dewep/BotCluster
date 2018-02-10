@@ -1,24 +1,37 @@
 // const process = require('child_process')
 
-process.on('message', m => {
-  const childModule = require(m.childModule)
-  const result = await childModule.run(m.config, m.params)
-  process.send({ result })
-  // squareRoot(m.start, m.stop)
+let childModule
+let progress = 0
+
+process.on('message', message => {
+  if (message.job) {
+    runJob(message.job)
+  }
 })
 
-function squareRoot (start, stop) {
-  for (let i = start; i < stop; i++) {
-    const result = Math.sqrt(i)
-    if (result === Math.round(result)) {
-      process.send({ message: `The square root of ${i} is ${result} !` })
+function runJob (job) {
+  childModule = require(job.modulePath)
+  const tasks = job.job.jobs
+  const results = []
+  for (let taskNumber in tasks) {
+    const toCompute = job.job.jobs[taskNumber]
+
+    const result = childModule(job.config, toCompute)
+    results.push(result)
+
+    if (Math.round(100 * taskNumber / tasks.length) > progress) {
+      progress = Math.round(100 * taskNumber / tasks.length)
+      process.send({ progress })
     }
   }
-}
 
-function sendMessage () {
-  process.send({ message: 'I\'m alive !' });
-  setTimeout(sendMessage, 2000)
+  process.send({
+    result: {
+      type: 'job',
+      slug: job.slug,
+      id: job.job.id,
+      results
+    },
+    isAvailable: true
+  })
 }
-
-sendMessage()
