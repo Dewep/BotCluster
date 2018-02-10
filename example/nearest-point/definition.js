@@ -48,7 +48,7 @@ module.exports = {
   result (state) {
     const prefix = `Nearest point of [${targetPoint.toString()}]: `
     if (state.best.point) {
-      return `${prefix}[${state.best.point.toString()}] with a distance of ${state.bext.distance}`
+      return `${prefix}[${state.best.point.toString()}] with a distance of ${state.best.distance}`
     }
     return prefix + 'N/A'
   }

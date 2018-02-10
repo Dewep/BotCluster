@@ -1,5 +1,5 @@
 const path = require('path')
-const requireWithoutCache = require('./require-without-cache')
+const fs = require('fs')
 
 class TaskManager {
   constructor (app) {
@@ -24,10 +24,14 @@ class TaskManager {
   addTask (directory, doNotRefresh) {
     const moduleName = path.basename(directory)
     const moduleDirectory = path.join(this.app.config.application.modulesDirectory, moduleName)
+    const slug = moduleName + this._randomIdentifier()
     let mod = null
 
     try {
-      mod = requireWithoutCache(moduleDirectory)
+      const dest = path.join(moduleDirectory, '.tmp.' + slug + '.js')
+      fs.copyFileSync(path.join(moduleDirectory, 'definition.js'), dest)
+      mod = require(dest)
+      fs.unlinkSync(dest)
     } catch (err) {
       console.warn(`[Cannot import module "${moduleName}"]`, err)
       return null
@@ -36,7 +40,7 @@ class TaskManager {
     const task = {
       path: moduleDirectory,
       status: {
-        slug: moduleName + this._randomIdentifier(),
+        slug,
         moduleName,
         isRunning: true,
         isOver: false,
@@ -75,6 +79,7 @@ class TaskManager {
       task.status.isRunning = true
       task.status.isDeleted = false
       this.refreshTasksToAdmins()
+      this.refreshCheckJobs()
     }
   }
 
@@ -138,7 +143,29 @@ class TaskManager {
   }
 
   jobDone (slug, id, results) {
-    // const task = this.tasks.find(t => t.status.slug === slug)
+    const task = this.tasks.find(t => t.status.slug === slug)
+
+    if (!task) {
+      return
+    }
+
+    const job = task.running.find(r => r.id === id)
+
+    if (!job) {
+      return console.warn('Job not found!', slug, id)
+    }
+
+    task.module.analyze(job.jobs, results, task.state)
+    task.status.jobsDone += job.jobs.length
+    task.running = task.running.filter(r => r !== job)
+    task.status.jobsRunning = task.running.reduce((p, c) => p + c.jobs.length, 0)
+    if (task.jobsDone >= task.jobsTotal) {
+      task.isOver = true
+      task.isRunning = false
+    }
+    task.status.result = task.module.result(task.state)
+
+    this.refreshTasksToAdmins()
   }
 
   getFileModule (slug, file) {

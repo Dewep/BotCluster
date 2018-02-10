@@ -61,8 +61,8 @@ class WebSocketWorker {
   }
 
   jobDone (client, content) {
-    this.taskManager.jobDone(content.slug, content.id, content.results)
-    client.jobs = client.jobs.filter(j => j.slug !== content.slug && j.id !== content.id)
+    this.app.taskManager.jobDone(content.slug, content.id, content.results)
+    client.jobs = client.jobs.filter(j => j.slug !== content.slug || j.id !== content.id)
   }
 
   removeClient (wsConnection) {
