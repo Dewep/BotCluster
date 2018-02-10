@@ -6,52 +6,56 @@ class TaskManager {
     this.app = app
 
     this.tasks = []
+    this.lastTaskIndex = 0
   }
 
   run () {
-    this.addTask('example')
-    this.addTask('example2')
-    this.addTask('example3')
-    this.addTask('example4')
+    this.addTask('nearest-point')
   }
 
   getTasks () {
-    return this.tasks.map(task => task.state)
+    return this.tasks.map(task => task.status)
   }
 
   _randomIdentifier () {
-    return '#' + ('' + Math.random()).substr(2, 4)
+    return '-' + ('' + Math.random()).substr(2, 4)
   }
 
   addTask (directory, doNotRefresh) {
     const moduleName = path.basename(directory)
+    const moduleDirectory = path.join(this.app.config.application.modulesDirectory, moduleName)
     let mod = null
 
     try {
-      mod = requireWithoutCache(`./tasks/${moduleName}`)
+      mod = requireWithoutCache(moduleDirectory)
     } catch (err) {
-      // TODO: do not add if module not found
-      // return null
+      console.warn(`[Cannot import module "${moduleName}"]`, err)
+      return null
     }
 
     const task = {
-      state: {
+      path: moduleDirectory,
+      status: {
         slug: moduleName + this._randomIdentifier(),
         moduleName,
         isRunning: true,
         isOver: false,
         isDeleted: false,
-        jobsToRetry: 15,
-        jobsRunning: 48,
-        jobsDone: 1844,
-        jobsTotal: 10000,
-        result: 'adz zadzad zadazdzad azdazd\nefzef zefezf zefzef zef\nefzef zefezf zef zefzf\nezfez fzef efzefz fzef'
+        jobsToRetry: 0,
+        jobsRunning: 0,
+        jobsDone: 0,
+        jobsTotal: 0,
+        result: ''
       },
-      config: {},
+      state: {},
       retry: [],
       running: [],
       module: mod
     }
+
+    task.state = task.module.initialState()
+    task.status.jobsTotal = task.module.workSize
+    task.status.result = task.module.result(task.state)
 
     this.tasks.push(task)
 
@@ -63,35 +67,77 @@ class TaskManager {
   }
 
   resumeTask (slug) {
-    const task = this.tasks.find(t => t.state.slug === slug)
-    if (task) {
-      task.state.isRunning = true
-      task.state.isDeleted = false
+    const task = this.tasks.find(t => t.status.slug === slug)
+    if (task && !task.isOver) {
+      task.status.isRunning = true
+      task.status.isDeleted = false
       this.refreshTasksToAdmins()
     }
   }
 
   pauseTask (slug) {
-    const task = this.tasks.find(t => t.state.slug === slug)
+    const task = this.tasks.find(t => t.status.slug === slug)
     if (task) {
-      task.state.isRunning = false
+      task.status.isRunning = false
       this.refreshTasksToAdmins()
     }
   }
 
   deleteTask (slug) {
-    const task = this.tasks.find(t => t.state.slug === slug)
+    const task = this.tasks.find(t => t.status.slug === slug)
     if (task) {
-      this.tasks = this.tasks.filter(t => t.state.slug !== slug)
-      if (!task.state.isDeleted) {
-        const newTask = this.addTask(task.state.moduleName, true)
+      this.tasks = this.tasks.filter(t => t.status.slug !== slug)
+      if (!task.status.isDeleted) {
+        const newTask = this.addTask(task.status.moduleName, true)
         if (newTask) {
-          newTask.state.isRunning = false
-          newTask.state.isDeleted = true
+          newTask.status.isRunning = false
+          newTask.status.isDeleted = true
         }
       }
       this.refreshTasksToAdmins()
     }
+  }
+
+  getJob (retry) {
+    this.lastTaskIndex++
+
+    for (; this.lastTaskIndex < this.tasks.length; this.lastTaskIndex++) {
+      if (this.tasks[this.lastTaskIndex].status.isRunning) {
+        const task = this.tasks[this.lastTaskIndex]
+        const jobs = task.retry.shift() || task.module.next(task.state)
+
+        if (jobs.length) {
+          task.running.push(jobs)
+          task.status.jobsToRetry = task.retry.reduce((p, c) => p + c.length, 0)
+          task.status.jobsRunning = task.running.reduce((p, c) => p + c.length, 0)
+
+          this.refreshTasksToAdmins()
+
+          return {
+            slug: task.status.slug,
+            fileModule: task.module.nodeFileModule,
+            config: task.module.configNode,
+            jobs
+          }
+        }
+      }
+    }
+
+    if (retry !== false) {
+      this.lastTaskIndex = -1
+
+      return this.getJob(false)
+    }
+
+    return null
+  }
+
+  getFileModule (slug, file) {
+    const task = this.tasks.find(t => t.status.slug === slug)
+    if (task && task.status.isRunning && task.module.nodeFileModule === file) {
+      return path.join(task.path, file)
+    }
+    return null
   }
 
   refreshTasksToAdmins () {

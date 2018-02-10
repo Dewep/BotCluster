@@ -1,11 +1,7 @@
 const _ = require('lodash')
-const config = require('./config')
+const generalConfig = require('./config')
 
-const app = {
-  config
-}
-
-async function runModules (modules) {
+async function runModules (app, modules) {
   // Rename modules
   modules = modules.map(m => ({ directory: m, name: _.camelCase(m) }))
 
@@ -23,7 +19,22 @@ async function runModules (modules) {
   }
 }
 
-runModules(['server-web', 'websocket', 'task-manager']).catch(err => {
-  console.error('[run-error]', err)
-  process.exit(1)
-})
+module.exports.Server = async function (localConfig) {
+  const app = {
+    config: _.merge({}, generalConfig, localConfig)
+  }
+
+  await runModules(app, ['server-web', 'websocket', 'task-manager'])
+
+  return app
+}
+
+module.exports.Node = async function (config) {
+  const app = {
+    config
+  }
+
+  await runModules(app, ['node'])
+
+  return app
+}

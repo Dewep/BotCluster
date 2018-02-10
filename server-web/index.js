@@ -1,5 +1,5 @@
 const express = require('express')
-const bodyParser = require('body-parser')
+// const bodyParser = require('body-parser')
 const http = require('http')
 
 class ServerWeb {
@@ -9,8 +9,16 @@ class ServerWeb {
 
     this.express = express()
 
-    this.express.use(bodyParser.json({ limit: '10mb' }))
+    // this.express.use(bodyParser.json({ limit: '10mb' }))
     this.express.use(this.logger)
+
+    this.express.get(`/task/${app.config.application.secret}/:slug/:file`, (req, res) => {
+      const file = app.taskManager.getFileModule(req.params.slug, req.params.file)
+      if (!file) {
+        return res.send(404)
+      }
+      res.sendFile(file)
+    })
 
     this.express.use(this.errorHandling)
 

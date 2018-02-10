@@ -1,10 +1,10 @@
-const _ = require('lodash')
-
-const generalConfig = require('./config')
-let localConfig = {}
-
-try {
-  localConfig = require('./config.local')
-} catch (e) {}
-
-module.exports = _.merge({}, generalConfig, localConfig)
+module.exports = {
+  application: {
+    secret: null,
+    modulesDirectory: '.'
+  },
+  serverWeb: {
+    host: '127.0.0.1',
+    port: 4242
+  }
+}
