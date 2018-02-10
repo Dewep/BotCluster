@@ -48,7 +48,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="css">
 #auth-page {
   display: flex;
   align-content: center;
@@ -59,11 +59,11 @@ export default {
   overflow: hidden;
   background: #f8f9fa;
   align-items: center;
+}
 
-  & > .empty {
-    flex: 1 1 auto;
-    max-width: 700px;
-    margin: 0 auto;
-  }
+#auth-page > .empty {
+  flex: 1 1 auto;
+  max-width: 700px;
+  margin: 0 auto;
 }
 </style>

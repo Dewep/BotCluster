@@ -82,10 +82,8 @@ export default {
 }
 </script>
 
-<style lang="sass">
-.tasks {
-  .task {
-    box-shadow: 0 0.05rem 0.2rem rgba(69,77,93,.3);
-  }
+<style lang="css">
+.tasks .task {
+  box-shadow: 0 0.05rem 0.2rem rgba(69,77,93,.3);
 }
 </style>
