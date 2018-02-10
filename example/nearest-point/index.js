@@ -31,7 +31,7 @@ module.exports = {
     const toCompute = []
     const maxPosition = Math.min(state.position + 1000, points.length)
     for (; state.position < maxPosition; state.position++) {
-      toCompute.push(points[i])
+      toCompute.push(points[state.position])
     }
     return toCompute
   },
