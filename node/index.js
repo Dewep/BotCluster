@@ -44,10 +44,22 @@ class AppNode {
       console.error('[ws.ERROR]', error)
       this.ws.close()
     })
+
+    this.ws.on('message', message => {
+      const content = JSON.parse(message)
+      if (content.type === 'job' && content.job) {
+        this.runJob(content.job)
+      }
+    })
+  }
+
+  runJob (job) {
+    console.info({ job })
   }
 
   sendStatus () {
     this.ws.send(JSON.stringify({
+      type: 'status',
       name: this.config.name,
       status: this.status
     }))

@@ -47,6 +47,7 @@ class TaskManager {
         jobsTotal: 0,
         result: ''
       },
+      nextJobId: 0,
       state: {},
       retry: [],
       running: [],
@@ -62,6 +63,8 @@ class TaskManager {
     if (doNotRefresh !== true) {
       this.refreshTasksToAdmins()
     }
+
+    this.refreshCheckJobs()
 
     return task
   }
@@ -107,9 +110,11 @@ class TaskManager {
         const jobs = task.retry.shift() || task.module.next(task.state)
 
         if (jobs.length) {
-          task.running.push(jobs)
+          const job = { id: task.nextJobId, jobs }
+          task.running.push(job)
+          task.nextJobId++
           task.status.jobsToRetry = task.retry.reduce((p, c) => p + c.length, 0)
-          task.status.jobsRunning = task.running.reduce((p, c) => p + c.length, 0)
+          task.status.jobsRunning = task.running.reduce((p, c) => p + c.jobs.length, 0)
 
           this.refreshTasksToAdmins()
 
@@ -117,7 +122,7 @@ class TaskManager {
             slug: task.status.slug,
             fileModule: task.module.nodeFileModule,
             config: task.module.configNode,
-            jobs
+            job
           }
         }
       }
@@ -132,6 +137,10 @@ class TaskManager {
     return null
   }
 
+  jobDone (slug, id, results) {
+    // const task = this.tasks.find(t => t.status.slug === slug)
+  }
+
   getFileModule (slug, file) {
     const task = this.tasks.find(t => t.status.slug === slug)
     if (task && task.status.isRunning && task.module.nodeFileModule === file) {
@@ -142,6 +151,10 @@ class TaskManager {
 
   refreshTasksToAdmins () {
     this.app.websocket.admin.updateTasks()
+  }
+
+  refreshCheckJobs () {
+    this.app.websocket.worker.checkJobs()
   }
 }
 

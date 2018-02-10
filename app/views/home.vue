@@ -19,9 +19,9 @@
       </h5>
       <pre class="code" :data-lang="`RESULT (${task.jobsDone}/${task.jobsTotal})`"><code>{{ task.result || 'N/A' }}</code></pre>
       <div class="bar">
-        <div class="bar-item tooltip" :data-tooltip="`Done: ${task.jobsDone} (${task.donePercent}%)`" :style="{ width: task.donePercent + '%', background: '#32B63E' }"></div>
-        <div class="bar-item tooltip" :data-tooltip="`To retry: ${task.jobsToRetry} (${task.retryPercent}%)`" :style="{ width: Math.max(1, task.retryPercent) + '%', background: '#e85600' }"></div>
-        <div class="bar-item tooltip" :data-tooltip="`Running: ${task.jobsRunning} (${task.runningPercent}%)`" :style="{ width: Math.max(1, task.runningPercent) + '%' }"></div>
+        <div class="bar-item tooltip tooltip-right" :data-tooltip="`Done: ${task.jobsDone} (${task.donePercent}%)`" :style="{ width: task.donePercent + '%', background: '#32B63E' }"></div>
+        <div class="bar-item tooltip tooltip-right" :data-tooltip="`To retry: ${task.jobsToRetry} (${task.retryPercent}%)`" :style="{ width: task.retryPercentDisplay + '%', background: '#e85600' }"></div>
+        <div class="bar-item tooltip tooltip-right" :data-tooltip="`Running: ${task.jobsRunning} (${task.runningPercent}%)`" :style="{ width: task.runningPercentDisplay + '%' }"></div>
       </div>
     </div>
   </div>
@@ -65,13 +65,17 @@ export default {
           position = 3
           style.background = 'rgba(50, 182, 67, 0.3)'
         }
+        const retryPercent = Math.round(task.jobsToRetry * 100 * 100 / task.jobsTotal) / 100
+        const runningPercent = Math.round(task.jobsRunning * 100 * 100 / task.jobsTotal) / 100
         return {
           ...task,
           status,
           statusLabelClass,
           donePercent: Math.round(task.jobsDone * 100 * 100 / task.jobsTotal) / 100,
-          retryPercent: Math.round(task.jobsToRetry * 100 * 100 / task.jobsTotal) / 100,
-          runningPercent: Math.round(task.jobsRunning * 100 * 100 / task.jobsTotal) / 100,
+          retryPercent,
+          retryPercentDisplay: task.jobsToRetry ? Math.max(1, retryPercent) : 0,
+          runningPercent,
+          runningPercentDisplay: task.jobsRunning ? Math.max(1, runningPercent) : 0,
           position
         }
       }).sort((a, b) => a.position - b.position)

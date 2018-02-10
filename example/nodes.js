@@ -26,22 +26,22 @@ botCluster.Node({
   console.error('[general-error-0]', err)
 })
 
-botCluster.Node({
-  host: '127.0.0.1:4242',
-  secure: false, // if true, use wss and https instead of ws and http
-  secret: 42,
-  name: 'LocalNode-1',
-  modulesDirectory: tmp1
-}).catch(err => {
-  console.error('[general-error-1]', err)
-})
+// botCluster.Node({
+//   host: '127.0.0.1:4242',
+//   secure: false, // if true, use wss and https instead of ws and http
+//   secret: 42,
+//   name: 'LocalNode-1',
+//   modulesDirectory: tmp1
+// }).catch(err => {
+//   console.error('[general-error-1]', err)
+// })
 
-botCluster.Node({
-  host: '127.0.0.1:4242',
-  secure: false, // if true, use wss and https instead of ws and http
-  secret: 42,
-  name: 'LocalNode-2',
-  modulesDirectory: tmp1
-}).catch(err => {
-  console.error('[general-error-2]', err)
-})
+// botCluster.Node({
+//   host: '127.0.0.1:4242',
+//   secure: false, // if true, use wss and https instead of ws and http
+//   secret: 42,
+//   name: 'LocalNode-2',
+//   modulesDirectory: tmp1
+// }).catch(err => {
+//   console.error('[general-error-2]', err)
+// })
