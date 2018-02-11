@@ -17,15 +17,15 @@ class AppNode {
   run () {
     os.cpus().forEach(cpu => {
       const child = cp.fork(`${__dirname}/child.js`)
-      console.log('Created instance', { child })
       child.on('message', m => {
         if (m.isAvailable !== undefined) {
           child.isAvailable = m.isAvailable
         }
         if (m.progress !== undefined) {
-          console.log(`[${child.pid}]\t${m.progress} %`)
+          child.progress = m.progress
+          this.status = this.children.map(child => child.progress)
         }
-        if (m.result !== undefined) {
+        if (m.result !== undefined && this.ws) {
           this.ws.send(JSON.stringify(m.result))
         }
       })
@@ -92,16 +92,21 @@ class AppNode {
       child.isAvailable = false
       child.send({ job })
     } else {
-      console.error('====================================== THIS SHOULD NOT HAPPEN 1 ======================================')
+      console.error(this.children, '====================================== THIS SHOULD NOT HAPPEN 1 ======================================')
     }
   }
 
   sendStatus () {
-    this.ws.send(JSON.stringify({
-      type: 'status',
-      name: this.config.name,
-      status: this.status
-    }))
+    if (this.ws) {
+      this.ws.send(JSON.stringify({
+        type: 'status',
+        name: this.config.name,
+        status: this.status
+      }))
+      setTimeout(() => {
+        this.sendStatus()
+      }, 100)
+    }
   }
 }
 
