@@ -1,37 +1,38 @@
-// const process = require('child_process')
-
-let childModule
-let progress
-let stop = false
-
 process.on('message', message => {
   if (message.job) {
-    runJob(message.job)
+    const job = message.job
+
+    runJob(job).catch(err => {
+      process.send({
+        result: {
+          type: 'error',
+          slug: job.slug,
+          id: job.job.id
+        }
+      })
+
+      console.error('Failed to run job', job.slug, job.job.id, err)
+    })
   }
 })
 
 async function runJob (job) {
-  childModule = require(job.modulePath)
+  const childModule = require(job.modulePath)
+
   const tasks = job.job.jobs
   const results = []
-  progress = 0
-  for (let taskNumber in tasks) {
-    const toCompute = job.job.jobs[taskNumber]
+  let progress = 0
 
-    let result
-    try { // Sometimes childModule == {} wtf ?
-      result = childModule(job.config, toCompute)
-    } catch (error) {
-      console.error(job.modulePath, {childModule}, {error})
-      // process.send({isAvailable: true})
-    }
-    if (result && result.then) {
-      result = await result
-    }
+  for (const taskNumber in tasks) {
+    const toCompute = tasks[taskNumber]
+
+    const result = await childModule(job.config, toCompute)
     results.push(result)
 
-    if (Math.round(100 * taskNumber / tasks.length) > progress) {
-      progress = Math.round(100 * taskNumber / tasks.length)
+    const newProgress = Math.round(100 * taskNumber / tasks.length)
+    if (newProgress > progress) {
+      await new Promise(resolve => setTimeout(resolve))
+      progress = newProgress
       process.send({ progress })
     }
   }
@@ -42,7 +43,6 @@ async function runJob (job) {
       slug: job.slug,
       id: job.job.id,
       results
-    },
-    isAvailable: true
+    }
   })
 }

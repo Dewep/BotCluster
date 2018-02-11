@@ -3,109 +3,124 @@ const os = require('os')
 const cp = require('child_process')
 const request = require('request-promise')
 const fs = require('fs')
+const path = require('path')
 
 class AppNode {
   constructor (app) {
     this.app = app
     this.config = app.config
     this.ws = null
-    this.children = []
 
+    this.children = []
     this.status = os.cpus().map(cpu => 0)
+    this.statusUpdated = true
   }
 
   run () {
-    os.cpus().forEach(cpu => {
-      const child = cp.fork(`${__dirname}/child.js`)
-      child.on('message', m => {
-        if (m.isAvailable !== undefined) {
-          child.isAvailable = m.isAvailable
-        }
+    this.status.forEach(cpu => {
+      const child = {
+        isAvailable: true,
+        progress: 0,
+        process: cp.fork(path.join(__dirname, 'child.js'))
+      }
+
+      child.process.on('message', m => {
         if (m.progress !== undefined) {
           child.progress = m.progress
-          this.status = this.children.map(child => child.progress)
+          this.status = this.children.map(c => c.progress)
+          this.statusUpdated = true
         }
-        if (m.result !== undefined && this.ws) {
+
+        if (m.result && this.ws) {
+          child.isAvailable = true
+          child.progress = 0
+          this.status = this.children.map(c => c.progress)
+          this.statusUpdated = true
           this.ws.send(JSON.stringify(m.result))
         }
       })
-      child.isAvailable = true
+
       this.children.push(child)
     })
+
     this.connect()
+
+    setInterval(() => this.sendStatus(), 500)
   }
 
   connect () {
-    this.ws = new WebSocket(`ws${this.config.secure ? 's' : ''}://${this.config.host}/worker/${this.config.secret}`)
+    const ws = new WebSocket(`ws${this.config.secure ? 's' : ''}://${this.config.host}/worker/${this.config.secret}`)
 
-    this.ws.on('open', () => {
+    ws.on('open', () => {
       console.info('[ws.CONNECTED]')
-      this.sendStatus()
+      this.statusUpdated = true
+      this.ws = ws
     })
 
-    this.ws.on('close', () => {
+    ws.on('close', () => {
       console.info('[ws.CLOSED]')
       this.ws = null
       setTimeout(() => this.connect(), 5000)
     })
 
-    this.ws.on('error', error => {
+    ws.on('error', error => {
       console.error('[ws.ERROR]', error)
-      this.ws.close()
+      ws.close()
     })
 
-    this.ws.on('message', message => {
+    ws.on('message', message => {
       const content = JSON.parse(message)
+
       if (content.type === 'job' && content.job) {
-        this.runJob(content.job)
+        this.runJob(content.job).catch(err => {
+          console.error('[runJob.error]', err)
+
+          if (this.ws) {
+            this.ws.send(JSON.stringify({
+              type: 'error',
+              slug: content.job.slug,
+              id: content.job.job.id
+            }))
+          }
+        })
       }
     })
-  }
-
-  getAvailableChild () {
-    for (let index in this.children) {
-      const child = this.children[index]
-      if (child.isAvailable) {
-        return child
-      }
-    }
-    return null
   }
 
   async saveFile (slug, fileModule) {
-    const filePath = this.app.config.modulesDirectory + '\\' + slug + '-' + fileModule
+    const filePath = path.join(this.app.config.modulesDirectory, slug + '-' + fileModule)
+
     if (!fs.existsSync(filePath)) {
-      let options = {
-        uri: `http://127.0.0.1:4242/task/42/${slug}/${fileModule}` // C CRADE
-      }
-      const result = await request(options)
+      const result = await request(`http${this.config.secure ? 's' : ''}://${this.config.host}/task/${this.config.secret}/${slug}/${fileModule}`)
       fs.writeFileSync(filePath, result)
     }
+
     return filePath
   }
 
   async runJob (job) {
-    const jobs = job.job.jobs
     job.modulePath = await this.saveFile(job.slug, job.fileModule)
-    const child = this.getAvailableChild()
-    if (child) {
-      child.isAvailable = false
-      child.send({ job })
-    } else {
-      console.error(this.children, '====================================== THIS SHOULD NOT HAPPEN 1 ======================================')
+
+    for (const index in this.children) {
+      const child = this.children[index]
+      if (child.isAvailable) {
+        child.isAvailable = false
+        child.process.send({ job })
+        return
+      }
     }
+
+    throw new Error('No child available for a new job!')
   }
 
   sendStatus () {
-    if (this.ws) {
+    if (this.ws && this.statusUpdated) {
+      this.statusUpdated = false
       this.ws.send(JSON.stringify({
         type: 'status',
         name: this.config.name,
         status: this.status
       }))
-      setTimeout(() => {
-        this.sendStatus()
-      }, 100)
     }
   }
 }
