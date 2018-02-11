@@ -18,6 +18,9 @@ const actions = {
   pauseTask ({ commit }, slug) {
     commit('PAUSE_TASK', { slug })
   },
+  retryRunningTask ({ commit }, slug) {
+    commit('RETRY_RUNNING_TASK', { slug })
+  },
   deleteTask ({ commit }, slug) {
     commit('DELETE_TASK', { slug })
   }
@@ -35,6 +38,8 @@ const mutations = {
   RESUME_TASK (state, { slug }) {
   },
   PAUSE_TASK (state, { slug }) {
+  },
+  RETRY_RUNNING_TASK (state, { slug }) {
   },
   DELETE_TASK (state, { slug }) {
   }

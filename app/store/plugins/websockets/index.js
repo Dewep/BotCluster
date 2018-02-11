@@ -63,6 +63,10 @@ export default store => {
         instance.send({ type: 'pauseTask', data: mutation.payload })
       }
 
+      if (mutation.type === 'RETRY_RUNNING_TASK') {
+        instance.send({ type: 'retryRunningTask', data: mutation.payload })
+      }
+
       if (mutation.type === 'DELETE_TASK') {
         instance.send({ type: 'deleteTask', data: mutation.payload })
       }

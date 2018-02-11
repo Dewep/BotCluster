@@ -15,9 +15,10 @@
         <span class="mr-2">{{ task.moduleName }}</span>
         <button class="btn btn-sm btn-primary" v-if="task.status === 'pause' || task.status === 'canceled'" @click.prevent="resumeTask(task.slug)">Resume</button>
         <button class="btn btn-sm btn-secondary" v-if="task.status === 'running'" @click.prevent="pauseTask(task.slug)">Pause</button>
+        <button class="btn btn-sm btn-secondary" v-if="task.status === 'running'" @click.prevent="retryRunningTask(task.slug)">Retry running</button>
         <button class="btn btn-sm btn-error" @click.prevent="deleteTask(task.slug)">{{ task.status === 'canceled' ? 'Delete' : 'Cancel' }}</button>
       </h5>
-      <pre class="code" :data-lang="`RESULT (${task.jobsDone}/${task.jobsTotal})`"><code>{{ task.result || 'N/A' }}</code></pre>
+      <pre class="code" :data-lang="`${task.slug} (${task.jobsDone}/${task.jobsTotal})`"><code>{{ task.result || 'N/A' }}</code></pre>
       <div class="bar">
         <div class="bar-item tooltip tooltip-right" :data-tooltip="`Done: ${task.jobsDone} (${task.donePercent}%)`" :style="{ width: task.donePercent + '%', background: '#32B63E' }"></div>
         <div class="bar-item tooltip tooltip-right" :data-tooltip="`To retry: ${task.jobsToRetry} (${task.retryPercent}%)`" :style="{ width: task.retryPercentDisplay + '%', background: '#e85600' }"></div>
@@ -45,24 +46,20 @@ export default {
       return this.tasks.map(task => {
         let status = 'pause'
         let statusLabelClass = 'label-warning'
-        let position = 2
         let style = {
           background: 'rgba(255, 183, 0, 0.2)'
         }
         if (task.isRunning) {
           status = 'running'
           statusLabelClass = 'label-primary'
-          position = 1
           delete style.background
         } else if (task.isDeleted) {
           status = 'canceled'
           statusLabelClass = 'label-error'
-          position = 4
           style.background = 'rgba(232, 86, 0, 0.4)'
         } else if (task.isOver) {
           status = 'finished'
           statusLabelClass = 'label-success'
-          position = 3
           style.background = 'rgba(50, 182, 67, 0.3)'
         }
         const retryPercent = Math.round(task.jobsToRetry * 100 * 100 / task.jobsTotal) / 100
@@ -75,14 +72,13 @@ export default {
           retryPercent,
           retryPercentDisplay: task.jobsToRetry ? Math.max(1, retryPercent) : 0,
           runningPercent,
-          runningPercentDisplay: task.jobsRunning ? Math.max(1, runningPercent) : 0,
-          position
+          runningPercentDisplay: task.jobsRunning ? Math.max(1, runningPercent) : 0
         }
-      }).sort((a, b) => a.position - b.position)
+      })
     }
   },
 
-  methods: mapActions(['addTask', 'resumeTask', 'pauseTask', 'deleteTask'])
+  methods: mapActions(['addTask', 'resumeTask', 'pauseTask', 'retryRunningTask', 'deleteTask'])
 }
 </script>
 
