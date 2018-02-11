@@ -32,6 +32,9 @@ class WebSocketWorker {
       } else if (content.type === 'job') {
         this.jobDone(client, content)
         this.checkJobs()
+      } else if (content.type === 'error') {
+        this.jobError(client, content)
+        this.checkJobs()
       }
     })
   }
@@ -65,8 +68,18 @@ class WebSocketWorker {
     client.jobs = client.jobs.filter(j => j.slug !== content.slug || j.id !== content.id)
   }
 
+  jobError (client, content) {
+    this.app.taskManager.jobError(content.slug, content.id)
+    client.jobs = client.jobs.filter(j => j.slug !== content.slug || j.id !== content.id)
+  }
+
   removeClient (wsConnection) {
-    this.clients = this.clients.filter(c => c.wsConnection !== wsConnection)
+    const client = this.clients.find(c => c.wsConnection === wsConnection)
+    if (client) {
+      client.jobs.forEach(j => this.app.taskManager.jobError(j.slug, j.id))
+      client.jobs = []
+      this.clients = this.clients.filter(c => c !== client)
+    }
     this.ws.admin.updateHosts()
   }
 }

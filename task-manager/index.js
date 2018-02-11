@@ -66,9 +66,8 @@ class TaskManager {
 
     if (doNotRefresh !== true) {
       this.refreshTasksToAdmins()
+      this.refreshCheckJobs()
     }
-
-    this.refreshCheckJobs()
 
     return task
   }
@@ -91,6 +90,17 @@ class TaskManager {
     }
   }
 
+  retryRunningTask (slug) {
+    const task = this.tasks.find(t => t.status.slug === slug)
+    if (task) {
+      task.running.forEach(j => task.retry.push(j.jobs))
+      task.running = []
+      task.status.jobsToRetry = task.retry.reduce((p, c) => p + c.length, 0)
+      task.status.jobsRunning = task.running.reduce((p, c) => p + c.jobs.length, 0)
+      this.refreshTasksToAdmins()
+    }
+  }
+
   deleteTask (slug) {
     const task = this.tasks.find(t => t.status.slug === slug)
     if (task) {
@@ -103,6 +113,7 @@ class TaskManager {
         }
       }
       this.refreshTasksToAdmins()
+      this.refreshCheckJobs()
     }
   }
 
@@ -164,6 +175,27 @@ class TaskManager {
       task.isRunning = false
     }
     task.status.result = task.module.result(task.state)
+
+    this.refreshTasksToAdmins()
+  }
+
+  jobError (slug, id) {
+    const task = this.tasks.find(t => t.status.slug === slug)
+
+    if (!task) {
+      return
+    }
+
+    const job = task.running.find(r => r.id === id)
+
+    if (!job) {
+      return console.warn('Job not found!', slug, id)
+    }
+
+    task.running = task.running.filter(r => r !== job)
+    task.retry.push(job.jobs)
+    task.status.jobsRunning = task.running.reduce((p, c) => p + c.jobs.length, 0)
+    task.status.jobsToRetry = task.retry.reduce((p, c) => p + c.length, 0)
 
     this.refreshTasksToAdmins()
   }

@@ -5,20 +5,22 @@ class WebSocketAdmin {
     this.app = app
     this.ws = ws
 
+    this.throttleUpdateHostsTimer = null
+    this.throttleUpdateTasksTimer = null
     this.clients = []
   }
 
   addClient (wsConnection) {
     console.info('New admin wsConnection')
     this.clients.push(wsConnection)
-    this.updateHosts(wsConnection)
-    this.updateTasks(wsConnection)
+    this._updateHosts(wsConnection)
+    this._updateTasks(wsConnection)
 
     wsConnection.on('message', data => {
       const content = tools.decodeData(data)
 
       console.log('[ws.admin]', content.type, content.data)
-      if (['addTask', 'resumeTask', 'pauseTask', 'deleteTask'].indexOf(content.type) !== -1 && content.data && content.data.slug) {
+      if (['addTask', 'resumeTask', 'pauseTask', 'retryRunningTask', 'deleteTask'].indexOf(content.type) !== -1 && content.data && content.data.slug) {
         this.app.taskManager[content.type](content.data.slug)
       }
     })
@@ -28,7 +30,7 @@ class WebSocketAdmin {
     this.clients = this.clients.filter(c => c !== wsConnection)
   }
 
-  updateHosts (instance) {
+  _updateHosts (instance) {
     const hosts = this.ws.worker.getHosts()
     this.clients.forEach(client => {
       if (!instance || instance === client) {
@@ -37,13 +39,31 @@ class WebSocketAdmin {
     })
   }
 
-  updateTasks (instance) {
+  _updateTasks (instance) {
     const tasks = this.app.taskManager.getTasks()
     this.clients.forEach(client => {
       if (!instance || instance === client) {
         client.sendJSON('tasks', { tasks })
       }
     })
+  }
+
+  updateHosts (instance) {
+    if (!this.throttleUpdateHostsTimer) {
+      this.throttleUpdateHostsTimer = setTimeout(() => {
+        this.throttleUpdateHostsTimer = null
+        this._updateHosts(instance)
+      }, 500)
+    }
+  }
+
+  updateTasks (instance) {
+    if (!this.throttleUpdateTasksTimer) {
+      this.throttleUpdateTasksTimer = setTimeout(() => {
+        this.throttleUpdateTasksTimer = null
+        this._updateTasks(instance)
+      }, 500)
+    }
   }
 }
 
