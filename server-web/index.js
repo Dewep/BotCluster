@@ -1,6 +1,7 @@
 const express = require('express')
 // const bodyParser = require('body-parser')
 const http = require('http')
+const path = require('path')
 
 class ServerWeb {
   constructor (app) {
@@ -22,7 +23,7 @@ class ServerWeb {
 
     this.express.use(this.errorHandling)
 
-    this.express.use(express.static('public'))
+    this.express.use(express.static(path.join(__dirname, '..', 'public')))
 
     this.server = http.createServer(this.express)
   }
