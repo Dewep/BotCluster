@@ -10,7 +10,6 @@ class TaskManager {
   }
 
   run () {
-    this.addTask('nearest-point')
   }
 
   getTasks () {
