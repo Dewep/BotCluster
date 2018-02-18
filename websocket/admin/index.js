@@ -53,7 +53,7 @@ class WebSocketAdmin {
       this.throttleUpdateHostsTimer = setTimeout(() => {
         this.throttleUpdateHostsTimer = null
         this._updateHosts(instance)
-      }, 500)
+      }, 100)
     }
   }
 
@@ -62,7 +62,7 @@ class WebSocketAdmin {
       this.throttleUpdateTasksTimer = setTimeout(() => {
         this.throttleUpdateTasksTimer = null
         this._updateTasks(instance)
-      }, 500)
+      }, 100)
     }
   }
 }

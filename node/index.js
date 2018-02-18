@@ -45,7 +45,7 @@ class AppNode {
 
     this.connect()
 
-    setInterval(() => this.sendStatus(), 500)
+    setInterval(() => this.sendStatus(), 100)
   }
 
   connect () {
