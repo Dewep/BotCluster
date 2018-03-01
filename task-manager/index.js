@@ -135,7 +135,7 @@ class TaskManager {
 
           return {
             slug: task.status.slug,
-            fileModule: task.module.nodeFileModule,
+            filesModule: task.module.nodeFilesModule,
             config: task.module.configNode,
             job
           }
@@ -201,7 +201,7 @@ class TaskManager {
 
   getFileModule (slug, file) {
     const task = this.tasks.find(t => t.status.slug === slug)
-    if (task && task.status.isRunning && task.module.nodeFileModule === file) {
+    if (task && task.status.isRunning && task.module.nodeFilesModule.indexOf(file) !== -1) {
       return path.join(task.path, file)
     }
     return null

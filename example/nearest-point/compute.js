@@ -1,10 +1,12 @@
+const bob = require('./bob')
+
 module.exports = async function (config, toCompute) {
   const x1 = toCompute[0]
   const y1 = toCompute[1]
   const x2 = config.targetPoint[0]
   const y2 = config.targetPoint[1]
 
-  if (Math.round(Math.random() * 20000) === 1602) {
+  if (Math.round(Math.random() * 20000) === bob) {
     throw new Error('Error 16/02')
   }
 

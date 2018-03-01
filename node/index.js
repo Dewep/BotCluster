@@ -11,6 +11,7 @@ class AppNode {
     this.config = app.config
     this.ws = null
 
+    this.filePromises = {}
     this.children = []
     this.status = os.cpus().map(cpu => 0)
     this.statusUpdated = true
@@ -88,18 +89,35 @@ class AppNode {
   }
 
   async saveFile (slug, fileModule) {
-    const filePath = path.join(this.app.config.modulesDirectory, slug + '-' + fileModule)
+    const filePath = path.join(this.app.config.modulesDirectory, slug, fileModule)
+
+    if (!fs.existsSync(path.join(this.app.config.modulesDirectory, slug))) {
+      fs.mkdirSync(path.join(this.app.config.modulesDirectory, slug))
+    }
 
     if (!fs.existsSync(filePath)) {
-      const result = await request(`http${this.config.secure ? 's' : ''}://${this.config.host}/task/${this.config.secret}/${slug}/${fileModule}`)
-      fs.writeFileSync(filePath, result)
+      if (!this.filePromises[filePath]) {
+        this.filePromises[filePath] = new Promise(resolve => {
+          request(`http${this.config.secure ? 's' : ''}://${this.config.host}/task/${this.config.secret}/${slug}/${fileModule}`).then(result => {
+            fs.writeFileSync(filePath, result)
+            resolve()
+          })
+        })
+      }
+      await this.filePromises[filePath]
     }
 
     return filePath
   }
 
   async runJob (job) {
-    job.modulePath = await this.saveFile(job.slug, job.fileModule)
+    for (let index = 0; index < job.filesModule.length; index++) {
+      if (index === 0) {
+        job.modulePath = await this.saveFile(job.slug, job.filesModule[index])
+      } else {
+        await this.saveFile(job.slug, job.filesModule[index])
+      }
+    }
 
     for (const index in this.children) {
       const child = this.children[index]
